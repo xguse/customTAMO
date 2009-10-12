@@ -15,6 +15,7 @@ def usage():
     print '         [-t fraction (for PSSMs)]'
     print '         [-L <oneletterstring>]'
     print '         [-S <scale>   Currently 1/20 char/bases for pretty printing IGRs'
+    print '         [-i <tamo files> supply tamo formatted motif files separated by ",".]'  # AD added this line
     print '\n'
     print 'Example: Find matches to ACCAT[CT] and CC...[AT][AT].GG, and'
     print '         label occurences of the first with "t" and the latter'
@@ -24,7 +25,7 @@ def usage():
 
 def main():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "f:m:n:L:t:a:S:", ["help", "output="])
+        opts, args = getopt.getopt(sys.argv[1:], "f:m:n:L:t:a:S:i:", ["help", "output="])  # AD added 'i'
     except getopt.GetoptError:
         usage()
         sys.exit(1)
@@ -34,7 +35,7 @@ def main():
         
 
     print "#" + ' '.join(sys.argv)
-    fastafile, motiffile, motifnums, labels, thresh = (None, None, [], None, 0.7)
+    fastafile, motiffile, motifnums, labels, thresh = (None, None, [], None, 0.75) # AD changed thresh val to 0.75 from 0.7
     ambigs = []
 
     scale   = 50.0 / 1000.0
@@ -42,18 +43,20 @@ def main():
     motifs = []
     for opt, value in opts:
         #print opt, value
-        if   opt == '-f':  fastafile = value
-        elif opt == '-m':  motifs.extend(MotifTools.txt2motifs(value))
-        elif opt == '-n':  motifnums = [int(x) for x in value.split(',')]
-        elif opt == '-L':  labels    = list(value)
-        elif opt == '-t':  thresh    = float(value)
-        elif opt == '-a':  ambigs.extend(value.split(','))
-        elif opt == '-S':  scale     = float(value)
+        if   opt ==  '-f':  fastafile = value
+        elif opt ==  '-m':  motifs.extend(MotifTools.txt2motifs(value))
+        elif opt ==  '-n':  motifnums = [int(x) for x in value.split(',')]
+        elif opt ==  '-L':  labels    = list(value)
+        elif opt ==  '-t':  thresh    = float(value)
+        elif opt ==  '-a':  ambigs.extend(value.split(','))
+        elif opt ==  '-S':  scale     = float(value)
+        elif opt ==  '-i':  motiffile = value  # AD added this option to ACTUALLY supply the tamo motif file at the command-line.  The code to deal with motiffiles already existed. There was just no code for User to supply one.
         
     probes = Fasta.load(fastafile)
     
     if motiffile:
-        motifs.extend(TAMO.tamofile2motifs(motiffile))
+        for f in motiffile.split(','):      # AD added this to allow supplying multiple tamo files at the prompt like you can supply multiple motifs
+            motifs.extend(MotifTools.load(f))
     if ambigs:
         for ambig in ambigs:
             motifs.append( MotifTools.Motif_from_text(ambig,0.1) )
