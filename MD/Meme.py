@@ -77,7 +77,7 @@ class Meme:
                 print "Perhaps something like -bfile %s"%(
                     TAMO.paths.MEMEdir + 'tests/yeast.nc.6.freq')
                 sys.exit(1)
-        self.extra_args = extra_args
+        self.extra_args = extra_args  #AD -> if extra_args self.args is ignored (see below [L88])
         self.lines  = []
         self.motifs = []
         self.probes = []
@@ -85,12 +85,14 @@ class Meme:
         self.outfile   = ''
         self.args   = '-dna -revcomp -nmotifs 1 -mod zoops -nostatus -text -maxsize 200000 '
         if extra_args:
-            self.args = '' # !! 1/2/09 AD added this IF statement to allow for his MD_wrapper class to better customize the MEME command.
+            self.args = '' #AD 1/2/09 AD added this IF statement to allow for his MD_wrapper class to better customize the MEME command.
         if bfile: self.args = self.args + '-bfile %s '%bfile 
         self.width  = '-minw 6 -maxw 18 '
         if width:
             self.width = '-w %d '%width
-        if (file[-4:] == '.fsa' or '.fas') or (file.find('.fasta')>0):
+        if extra_args:
+            self.width = '' #AD 2/24/09 -- added this to give my MDAP wrapper ability to set all options rather than rely on Gordon's
+        if (file[-4:] == '.fsa' or '.fas') or (file.find('.fasta')>0): #AD previously added < or '.fas' > to allow for another common fatsa extention
             self.fastafile = file
         else:
             self.outfile = file
