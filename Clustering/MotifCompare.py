@@ -361,7 +361,7 @@ def entropyrange(self,other,Srange,Orange):
 
 
 rcmemo = {}
-def minshortestoverhangdiff(A,B,minoverlap=6,want_offset=None,DFUNC=None):
+def minshortestoverhangdiff(A,B,minoverlap=6,want_offset=None,DFUNC=None,want_DistAndOff=None):  # AD added 'want_DistAndOff=None' since 'want_offset' does not return Dist.  Added new option instead of changing 'want_offset' to avoid breaking things elsewhere.
     if not DFUNC: DFUNC = diffrange
     if type(A) != type(B):
         print "Error: Attempted to compute alignment of objects that are not both Motifs"
@@ -379,7 +379,7 @@ def minshortestoverhangdiff(A,B,minoverlap=6,want_offset=None,DFUNC=None):
 
     lastS = wS - wO
     Dmin = 1000
-    if want_offset: Ds = []
+    if want_offset or want_DistAndOff: Ds = []                # AD added 'or want_DistAndOff:'
     key = '%s %s'%(self.oneletter,`[x['A'] for x in self.ll]`)
     if 1:  #MEMOize rc when doing many, many comparisons (factor x2.5 speedup)
         try: selfrc = rcmemo[key]
@@ -389,30 +389,31 @@ def minshortestoverhangdiff(A,B,minoverlap=6,want_offset=None,DFUNC=None):
     else: selfrc = self.revcomp()  #No Memo
 
     Ds = []
-    if want_offset: offinfo = []
+    if want_offset or want_DistAndOff: offinfo = []  # AD added 'or want_DistAndOff:'
     for S,rc in [(self,0), (selfrc,1)]:
         for Ostart in range(max(0,wO-minoverlap)):
             Orange = range(Ostart,wO)
             Srange = range(0,len(Orange))
             D = DFUNC(S,other,Srange,Orange)
-            if want_offset: offinfo.append((D,-Ostart,rc))
+            if want_offset or want_DistAndOff: offinfo.append((D,-Ostart,rc))  # AD added 'or want_DistAndOff:'
             Ds.append(D)
         Orange = range(0,wO)
         for Sstart in range(0,wS-wO+1):
             Srange = range(Sstart,Sstart+wO) 
             D = DFUNC(S,other,Srange,Orange)
-            if want_offset: offinfo.append((D,Srange[0],rc))
+            if want_offset or want_DistAndOff: offinfo.append((D,Srange[0],rc))  # AD added 'or want_DistAndOff:'
             Ds.append(D)
         for ovlp   in range(wO-1,minoverlap,-1):
             Srange = range(wS-ovlp,wS)
             Orange = range(0,ovlp)
             D = DFUNC(S,other,Srange,Orange)
-            if want_offset: offinfo.append((D,Srange[0],rc))
+            if want_offset or want_DistAndOff: offinfo.append((D,Srange[0],rc)) # AD added 'or want_DistAndOff:'
             Ds.append(D)
-    if not want_offset:
-        Ds.sort()
-        return Ds[0]
-    else:
+    # AD moved this block to the final 'else'.  See below
+    #if not want_offset or want_DistAndOff: 
+        #Ds.sort()
+        #return Ds[0]
+    if want_offset:
         offinfo.sort()
         D,off,rc = offinfo[0]
         offset = off
@@ -421,6 +422,19 @@ def minshortestoverhangdiff(A,B,minoverlap=6,want_offset=None,DFUNC=None):
         elif      (self == B):  #We'll print the RC of B, so simply negate the offset
             offset = 0 - offset
         return offset, rc
+    # AD added below to allow getting Dis AND offset in one call.
+    elif want_DistAndOff:
+        offinfo.sort()
+        D,off,rc = offinfo[0]
+        offset = off
+        if rc and (self == A):  #We're not printing the RC of A, so adjust the offset
+            offset = wA-wB-off
+        elif      (self == B):  #We'll print the RC of B, so simply negate the offset
+            offset = 0 - offset
+        return D,offset, rc
+    else:  # AD moved this block here from above.
+        Ds.sort()
+        return Ds[0]
 
 def negcommonbitstest(t1,t2,OVLP_FCN=None):
     testdiff(t1,t2,OVLP_FCN,negcommonbitsrange)
